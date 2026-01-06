@@ -3,7 +3,9 @@ __pycache__/
 .env
 support_json.json
 
-#ignore nested files and folders (**) inside data, keeps data folder
-data/** 
+# Ignore everything inside data (all nested files/folders)
+data/**
+# Except the placeholder file to keep the folder
 !data/.gitkeep
+
 logs/

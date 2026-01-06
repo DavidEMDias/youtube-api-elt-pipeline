@@ -27,7 +27,7 @@ def get_playlist_id() -> str:
         channel_items = data["items"][0]
         channel_playlistId = channel_items["contentDetails"]["relatedPlaylists"]["uploads"]
 
-        #print(f"Channel Uploads Playlist ID: {channel_playlistId}")
+        print(f"Channel Uploads Playlist ID: {channel_playlistId}")
 
         return channel_playlistId
 
@@ -55,11 +55,11 @@ def get_video_ids(playlist_id : str) -> list:
             response.raise_for_status()
             data = response.json()
 
-            for item in data.get("items", []): # [] as fail-safe.
+            for item in data.get("items", []): # [] as fail-safe. After 50 items jumps out of loop.
                 video_id = item["contentDetails"]["videoId"]
                 video_ids.append(video_id)
 
-                pageToken = data.get("nextPageToken") # Get nextPageToken for the next iteration/page
+            pageToken = data.get("nextPageToken") # Get nextPageToken for the next iteration/page
 
             if not pageToken: # If there is no nextPageToken, we have reached the last page
                 break
