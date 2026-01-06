@@ -67,8 +67,58 @@ def get_video_ids(playlist_id : str) -> list:
 
     except requests.exceptions.RequestException as e:
         raise e    
+
+
+
+def extract_video_data(video_ids: list) -> list:
+
+    extracted_data = []
+
+    def batch_list(video_id_list, batch_size):
+        for video_id in range(0, len(video_id_list), batch_size): # Step through the list in increments of batch_size (e.g., first 0, then 50, then 100, etc.)
+            yield video_id_list[video_id: video_id + batch_size] # Yield a slice of the list from the current index to current index + batch_size (e.g. 0 to 50, then 50 to 100, etc.)
+
+
+    try:
+        for batch in batch_list(video_id_list = video_ids, batch_size = MAX_RESULTS): # batch_list returns batches of video IDs
+            video_ids_str = ",".join(batch) # Join the list of video IDs into a comma-separated string
+             
+            url = f"https://youtube.googleapis.com/youtube/v3/videos?part=statistics&part=snippet&part=contentDetails&id={video_ids_str}&key={API_KEY}"
+
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+
+            for item in data.get("items", []):
+
+                # Break down the JSON response into its components
+                video_id = item["id"]
+                snippet = item["snippet"]
+                contentDetails = item["contentDetails"]
+                statistics = item["statistics"]
+
+                # Create a dictionary to store the extracted data for each video
+                video_data = {
+                    "video_id": video_id,
+                    "title": snippet["title"],
+                    "publishedAt": snippet["publishedAt"],
+                    "duration": contentDetails["duration"],
+                    "viewCount": statistics.get("viewCount", None), # It can happen that views, likes and comments are not visible
+                    "likeCount": statistics.get("likeCount", None),
+                    "commentCount": statistics.get("commentCount", None)
+                }
+
+                extracted_data.append(video_data)
+
+        return extracted_data
     
+    except requests.exceptions.RequestException as e:
+        raise e
+
+
+
 if __name__ == "__main__": 
     playlist_id = get_playlist_id()
-    get_video_ids(playlist_id)
+    video_ids = get_video_ids(playlist_id)
+    extract_video_data(video_ids)
 
