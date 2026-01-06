@@ -2,3 +2,6 @@ venv/
 __pycache__/
 .env
 support_json.json
+
+#ignore nested files and folders (**) inside data, keeps data folder
+data/** 
