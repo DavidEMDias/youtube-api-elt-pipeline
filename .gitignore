@@ -5,3 +5,4 @@ support_json.json
 
 #ignore nested files and folders (**) inside data, keeps data folder
 data/** 
+logs/
