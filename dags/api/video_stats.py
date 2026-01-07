@@ -1,16 +1,26 @@
 import requests
 import json
 from datetime import date
-import os
-from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="./.env")
+# import os
+# from dotenv import load_dotenv
+# load_dotenv(dotenv_path="./.env")
+
+from airflow.decorators import task # for TaskFlow API
+from airflow.models import Variable
 
 
-API_KEY = os.environ["API_KEY"]  # raises KeyError if missing
-CHANNEL_HANDLE = "MrBeast"
+
+# Without airflow
+#API_KEY = os.environ["API_KEY"]  # raises KeyError if missing
+#CHANNEL_HANDLE = "MrBeast"
+
+# With airflow
+API_KEY = Variable.get("API_KEY")
+CHANNEL_HANDLE = Variable.get("CHANNEL_HANDLE")
 MAX_RESULTS = 50
 
+@task
 def get_playlist_id() -> str:
     """Get the uploads playlist ID for a YouTube channel using its handle."""
 
@@ -27,14 +37,14 @@ def get_playlist_id() -> str:
         channel_items = data["items"][0]
         channel_playlistId = channel_items["contentDetails"]["relatedPlaylists"]["uploads"]
 
-        print(f"Channel Uploads Playlist ID: {channel_playlistId}")
+        #print(f"Channel Uploads Playlist ID: {channel_playlistId}")
 
         return channel_playlistId
 
     except requests.exceptions.RequestException as e:
         raise e
     
-
+@task
 def get_video_ids(playlist_id : str) -> list:
     """Get all video IDs from a YouTube playlist."""
 
@@ -70,12 +80,13 @@ def get_video_ids(playlist_id : str) -> list:
         raise e    
 
 
-
+@task
 def extract_video_data(video_ids: list) -> list:
 
     extracted_data = []
 
     def batch_list(video_id_list, batch_size):
+        """Due to the limit of 50 video IDs per request, this function yields batches of video IDs."""
         for video_id in range(0, len(video_id_list), batch_size): # Step through the list in increments of batch_size (e.g., first 0, then 50, then 100, etc.)
             yield video_id_list[video_id: video_id + batch_size] # Yield a slice of the list from the current index to current index + batch_size (e.g. 0 to 50, then 50 to 100, etc.)
 
@@ -116,6 +127,7 @@ def extract_video_data(video_ids: list) -> list:
     except requests.exceptions.RequestException as e:
         raise e
 
+@task
 def save_to_json(extracted_data):
     file_path = f"./data/YT_video_data_{date.today()}.json" # File path with today's date (e.g., YT_video_data_2023-10-05.json) - ELT run date 
 
