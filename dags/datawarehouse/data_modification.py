@@ -10,7 +10,7 @@ def insert_rows(cur, conn, schema, row): # row is a dictionary containing the da
 
             video_id = "video_id" # For logging purposes
 
-            cur.executa(
+            cur.execute(
                 f""" 
                 INSERT INTO {schema}.{TABLE} ("Video_ID", "Video_Title", "Upload_Date", "Duration", "Video_Views", "Likes_Count", "Comments_Count")
                 VALUES (%(video_id)s, %(title)s, %(publishedAt)s, %(duration)s, %(viewCount)s, %(likeCount)s, %(commentCount)s);
@@ -19,14 +19,14 @@ def insert_rows(cur, conn, schema, row): # row is a dictionary containing the da
 
         else:
 
-            video_id = "Video_ID" # How we refered in the staging layer
+            video_id = "Video_ID" # How it was refered in the staging layer
 
             cur.execute(
                 f"""
                 INSERT INTO {schema}.{TABLE}("Video_ID", "Video_Title", "Upload_Date", "Duration", "Video_Type", "Video_Views", "Likes_Count", "Comments_Count")
-                VALUES (%(Video_ID)s, %(Video_Title)s, %(Upload_Date)s, %(Duration)s, %(Video_Type)s, %(Video_Views)s, %(Likes_Count)s, %(Comments_Count)s)
+                VALUES (%(Video_ID)s, %(Video_Title)s, %(Upload_Date)s, %(Duration)s, %(Video_Type)s, %(Video_Views)s, %(Likes_Count)s, %(Comments_Count)s);
                 """, row
-            ) # We will read data from the previous staging layer
+            ) # Read data from the previous staging layer
 
         conn.commit()
 
@@ -34,4 +34,62 @@ def insert_rows(cur, conn, schema, row): # row is a dictionary containing the da
 
     except Exception as e:
         logger.error(f"Error inserting row with Video_ID: {row[video_id]}")
+        raise e
+
+def update_rows(cur, conn, schema, row):
+
+    try:
+        # For the staging schema the variable names are based on the keys of the JSON file
+        if schema == "staging":
+            video_id = "video_id"
+            upload_date = "publishedAt"
+            video_title = "title"
+            video_views = "viewCount"
+            likes_count = "likeCount"
+            comments_count = "commentCount"
+        # For Core the variables names are based on the column names in the staging layer
+        else:
+            video_id = "Video_ID"
+            upload_date = "Upload_Date"
+            video_title = "Video_Title"
+            video_views = "Video_Views"
+            likes_count = "Likes_Count"
+            comments_count = "Comments_Count"
+
+        cur.execute(f"""
+            UPDATE {schema}.{TABLE} SET
+            "Video_Title" = %({video_title})s,
+            "Video_Views" = %({video_views})s,
+            "Likes_Count" = %({likes_count})s,
+            "Comments_Count" = %({comments_count})s
+            WHERE "Video_ID" = %({video_id})s AND "Upload_Date" = %({upload_date})s;
+            """, row
+        )
+
+        conn.commit()
+
+        logger.info(f"Updated row with Video_ID: {row[video_id]}") # Can be either "Video_ID" or "video_id" depending on the schema
+
+    except Exception as e:
+        logger.error(f"Error updating row with Video_ID: {video_id} - {e}")
+        raise e
+    
+def delete_rows(cur, conn, schema, ids_to_delete):
+
+    try:
+        ids_to_delete = f"""(
+            {", ".join(f"'{id}'" for id in ids_to_delete)} 
+        )""" # Output example: ('id1', 'id2', 'id3')
+
+        cur.execute(f"""
+            DELETE FROM {schema}.{TABLE} WHERE "Video_ID" IN {ids_to_delete};
+            """
+            )
+        
+        conn.commit()
+
+        logger.info(f"Deleted rows with Video_IDs: {ids_to_delete}")
+
+    except Exception as e:
+        logger.error(f"Error deleting rows with Video_IDs: {ids_to_delete} - {e}")
         raise e

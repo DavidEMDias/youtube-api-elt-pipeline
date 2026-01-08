@@ -8,7 +8,7 @@ TABLE = "yt_api"
 def get_conn_cursor():
     hook = PostgresHook(postgres_conn_id="postgres_db_yt_elt", database="elt_db") #postgres_db_yt_elt comes from AIRFLOW_CONN_POSTGRES_DB_YT_ELT in Airflow Connections docker-compose.yaml
     conn = hook.get_conn()
-    cur = conn.cursor(cursfor_factory=RealDictCursor) # Changes how results are returned (as dictionaries instead of tuples) when we execute queries
+    cur = conn.cursor(cursor_factory=RealDictCursor) # Changes how results are returned (as dictionaries instead of tuples) when we execute queries
     return conn, cur
 
 def close_conn_cursor(conn, cur):
@@ -24,7 +24,7 @@ def create_schema(schema):
     
     cur.execute(schema_sql)
 
-    cur.commit # Commit changes to the database
+    conn.commit() # Commit changes to the database
 
     close_conn_cursor(conn, cur)
 
@@ -60,13 +60,13 @@ def create_table(schema):
               """
     cur.execute(table_sql)
 
-    cur.commit
+    conn.commit()
 
     close_conn_cursor(conn, cur)
 
 
 # Helpful to loop throught the rows of data inside tables
-def get_video_id(cur, schema):
+def get_video_ids(cur, schema):
 
     cur.execute(f"""SELECT "Video_ID" FROM {schema}.{TABLE};""")
     ids = cur.fetchall() # Returns a list of dictionaries because of RealDictCursor where the key is always "Video_ID" ex: [{"Video_ID": "abc123"}, {"Video_ID": "def456"}]
