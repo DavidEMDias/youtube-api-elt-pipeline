@@ -50,6 +50,7 @@ x-airflow-common:
   # Image stored on Dockerhub
   #image: ${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}:${IMAGE_TAG} before github actions
   image: ${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}:latest
+  pull_policy: always # acts like 'docker pull' before starting container (because of CI-CD pipeline) if I want to run it locally and image changed
   # Use the .env file to read the connection params and variables - SWITCH THIS OFF WHEN USING GITHUB ACTIONS
   #env_file:
   #  - .env
@@ -113,7 +114,7 @@ services:
     container_name: postgres
     image: postgres:13
     # Use the .env file to read the connection params - SWITCH THIS OFF WHEN USING GITHUB ACTIONS
-    #env_file: 
+    #env_file: # env_file is only needed when you want to inject variables directly into the container without listing them individually. 
     #  - .env
     # Env vars after POSTGRES_PASSWORD are needed for CI-CD workflow - SWITCH THIS ALL ON WHEN USING GITHUB ACTIONS
     environment:

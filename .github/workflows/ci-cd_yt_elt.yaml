@@ -32,12 +32,12 @@ jobs:
                       dockerfile
                       requirements.txt
           - name: Set up Docker Buildx # Rebuild the docker image
-            if: steps.changed-files-build.outputs.any_changed == 'true'
+            if: steps.changed-files-build.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
             uses: docker/setup-buildx-action@v3
           
           # Login into Docker Hub (where image resides)
           - name: Login to Docker Hub
-            if: steps.changed-files-build.outputs.any_changed == 'true'
+            if: steps.changed-files-build.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
             uses: docker/login-action@v3
             with:
               username: ${{ vars.DOCKERHUB_USERNAME }}
@@ -45,7 +45,7 @@ jobs:
 
           # Write the code to build and push docker image. 
           - name: Build and push Docker image
-            if: steps.changed-files-build.outputs.any_changed == 'true' 
+            if: steps.changed-files-build.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
             run: |                                                       #github.sha acts as a unique identifier (equivelent to what was done with .env files previously)
                       docker buildx build --push \
                         --tag ${{ vars.DOCKERHUB_NAMESPACE }}/${{ vars.DOCKERHUB_REPOSITORY }}:latest \
@@ -98,11 +98,11 @@ jobs:
               # CD Run the airflow dags test command for each dag inside main.py (it executes the dags)
               # docker compose down
           - name: Set up Docker Compose
-            if: steps.changed-files-tests.outputs.any_changed == 'true'
+            if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
             run: docker compose up -d
 
           - name: Run Unit and Integration Tests
-            if: steps.changed-files-tests.outputs.any_changed == 'true'
+            if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
             run: docker exec -t airflow-worker sh -c "pytest tests/ -v"
 
           - name: Run End-to-End DAG Tests
