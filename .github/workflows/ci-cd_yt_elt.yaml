@@ -49,7 +49,7 @@ jobs:
             run: |                                                       #github.sha acts as a unique identifier (equivelent to what was done with .env files previously)
                       docker buildx build --push \
                         --tag ${{ vars.DOCKERHUB_NAMESPACE }}/${{ vars.DOCKERHUB_REPOSITORY }}:latest \
-                        --tag ${{ vars.DOCKERHUB_NAMESPACE }}/${{ vars.DOCKERHUB_REPOSITORY }}:${{ github.sha }}
+                        --tag ${{ vars.DOCKERHUB_NAMESPACE }}/${{ vars.DOCKERHUB_REPOSITORY }}:${{ github.sha }} \
                         . # Path to Dockerfile (build context)
   
     unit-and-integration-and-e2e-tests:
@@ -112,7 +112,7 @@ jobs:
               for DAG in "${DAG_NAMES[@]}"; do 
                 docker exec -t airflow-worker sh -c "airflow dags test $DAG"
               done
-              
+
           - name: Tear down Docker Compose
             if: steps.changed-files-tests.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
             run: docker compose down 
