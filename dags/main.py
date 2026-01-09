@@ -3,6 +3,7 @@ import pendulum # for timezone handling
 from datetime import timedelta, datetime # for defining default args and scheduling
 from api.video_stats import get_playlist_id, get_video_ids, extract_video_data, save_to_json
 from datawarehouse.dwh import staging_table, core_table
+from dataquality.soda import yt_elt_data_quality
 
 # Define the local timezone
 local_tz = pendulum.timezone("Europe/Lisbon")
@@ -21,6 +22,10 @@ default_args = {
     "start_date": datetime(2025, 1, 1, tzinfo=local_tz),
     # 'end_date': datetime(2030, 12, 31, tzinfo=local_tz),
 }
+
+STAGING_SCHEMA = "staging"
+CORE_SCHEMA = "core"
+
 
 with DAG(
     dag_id="produce_json",
@@ -44,13 +49,29 @@ with DAG(
     dag_id="update_db",
     default_args= default_args,
     description="DAG to process JSON File and insert data into staging and core layer",
-    schedule= "0 15 * * *", # Run every day at 2PM
+    schedule= "0 15 * * *", # Run every day at 3PM
     catchup=False # Don't catch up on past runs
 ) as dag:
     
     # Define tasks (using TaskFlow API)
     update_staging = staging_table.override(task_id="update_staging_layer")() # Example on how to override task_id
-    update_core = core_table.override(task_id="update_core_layer")()
+    update_core = core_table.override(task_id="update_core_layer")() # For override method to work function must be TaskFlow-decorated function
 
     # Define dependencies. With TaskFlow API is optional if using the return values as inputs.
     update_staging >> update_core
+
+
+with DAG(
+    dag_id="data_quality",
+    default_args= default_args,
+    description="DAG to run data quality checks on the datawarehouse using Soda - both layers in the dwh",
+    schedule= "0 16 * * *", # Run every day at 4PM
+    catchup=False
+) as dag:
+    
+    # Define tasks (using BashOperator inside function)
+    dq_staging = yt_elt_data_quality(STAGING_SCHEMA) #Task_id will be set inside the function
+    dq_core = yt_elt_data_quality(CORE_SCHEMA) 
+
+    # Define dependencies
+    dq_staging >> dq_core

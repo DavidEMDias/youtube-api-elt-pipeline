@@ -1,0 +1,2 @@
+soda-core-postgres==3.3.14 # Data Quality - soda core postgres connector
+pytest==8.3.2 # Functional Tests
